@@ -1,6 +1,6 @@
 # cs50-pset6
 Implements the functionality of a web server written in C.
-The fuctions I worked on were:
+The functions I worked on were:
 
 lookup
 
