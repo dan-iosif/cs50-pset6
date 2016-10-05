@@ -442,12 +442,35 @@ char* htmlspecialchars(const char* s)
 
 /**
  * Checks, in order, whether index.php or index.html exists inside of path.
- * Returns path to first match if so, else NULL.
+ * Returns path to first match if so, else NULL. Not currently functional.
  */
 char* indexes(const char* path)
 {
-    // TODO
-    return NULL;
+        char* ind_php = "/index.php";
+        char* ind_html = "/index.html";
+
+        char* inx = malloc(sizeof(strlen(path) + strlen(ind_php) + 2));
+        strcpy(inx, path);
+        strcat(inx, ind_php);
+
+        if (access(inx, R_OK))
+        {
+             return inx;
+        }
+
+
+        strcpy(inx, path);
+        strcat(inx, ind_html);
+
+        if (access(inx, R_OK))
+        {
+           return inx;
+        }
+
+     free(inx);
+     return NULL;
+  
+  
 }
 
 /**
@@ -612,27 +635,40 @@ void list(const char* path)
 bool load(FILE* file, BYTE** content, size_t* length)
 {
     //at first allocate to *content a memory block of size 1, since we are going to read at least 1 byte from file.
-    *length = 1; 
-    *content = malloc(*length);
-    // save a copy of *content at cursor; will use cursor to traverse the memory block each time the size of the block increases
-    BYTE* cursor = *content;
+    *length = 0; 
+    *content = malloc(1);
+    BYTE* buffer = malloc(1);
     while(1)
     {
-        // save current byte into addresss pointed to by cursor
-        fread(cursor, sizeof(BYTE), 1, file);
+        // read one byte at a time, save it to 'buffer', then check for ferrof and feof
+        fread(buffer, sizeof(BYTE), 1, file);
+        
+        if (ferror(file) != 0)
+            {
+                error(500);
+                return false;
+                free(buffer);
+            }
+        
+       if (feof(file)) 
+            break;
+        
+        // append the byte read from file to the block pointed to by *content; if this is the first byte read place it at **content 
+        memcpy(*content + *length, buffer, 1);
+        
+        // we're read at least one byte from file succesfully and saved it at *content, increase the *length to reflect how many bytes we have saved at *content
         (*length)++;
-        *content = realloc(*content, *length);
+        
+        // by now we ran out of space at *content, so we need to increase the size of the memory block by 1; if length is 1, the new size of the block will be 2
+        *content = realloc(*content, (*length) + 1);
         if (*content == NULL)
                     {
                         error(500);
                         return false;
+                        free(buffer);
                     }
-        // we succesfully increased size of *content block, met cursor to point to the next byte
-        cursor++;
-        if (feof(file)) 
-            break;
-           
     }
+    free(buffer);
     return true;
 }
 
